@@ -99,7 +99,7 @@ export default function ProfilePage() {
 
   if (!profile) return null;
 
-  const isOwner = user && user.id === parseInt(id, 10);
+  const isOwner = user && user.id === Number.parseInt(id, 10);
   const isStudent = profile.role === 'student';
 
   return (

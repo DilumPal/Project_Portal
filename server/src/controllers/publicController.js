@@ -25,10 +25,10 @@ const getPublicStats = async (req, res) => {
     res.json({
       success: true,
       stats: {
-        totalProjects: parseInt(p.total_projects || 0, 10),
-        totalStudents: parseInt(u.total_students || 0, 10),
-        totalCompanies: parseInt(u.total_recruiters || 0, 10),
-        totalConnections: parseInt(c.total_connections || 0, 10),
+        totalProjects: Number.parseInt(p.total_projects || 0, 10),
+        totalStudents: Number.parseInt(u.total_students || 0, 10),
+        totalCompanies: Number.parseInt(u.total_recruiters || 0, 10),
+        totalConnections: Number.parseInt(c.total_connections || 0, 10),
       }
     });
   } catch (err) {

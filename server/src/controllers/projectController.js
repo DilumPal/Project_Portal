@@ -29,7 +29,7 @@ const getAllProjects = async (req, res) => {
     }
 
     const offset = (page - 1) * limit;
-    const params = [parseInt(limit, 10), offset];
+    const params = [Number.parseInt(limit, 10), offset];
     let whereClause = 'WHERE 1=1';
 
     if (status !== 'all') {
@@ -78,8 +78,8 @@ const getAllProjects = async (req, res) => {
     res.json({
       success: true,
       projects: result.rows,
-      total: parseInt(countResult.rows[0].count, 10),
-      page: parseInt(page, 10),
+      total: Number.parseInt(countResult.rows[0].count, 10),
+      page: Number.parseInt(page, 10),
       totalPages: Math.ceil(countResult.rows[0].count / limit),
     });
   } catch (err) {
@@ -324,7 +324,7 @@ const likeProject = async (req, res) => {
     if (existing.rows.length) {
       await pool.query('DELETE FROM likes WHERE user_id = $1 AND project_id = $2', [req.user.id, id]);
       const countResult = await pool.query('SELECT COUNT(*) FROM likes WHERE project_id = $1', [id]);
-      return res.json({ success: true, liked: false, likeCount: parseInt(countResult.rows[0].count, 10), message: 'Like removed.' });
+      return res.json({ success: true, liked: false, likeCount: Number.parseInt(countResult.rows[0].count, 10), message: 'Like removed.' });
     }
 
     await pool.query(
@@ -339,7 +339,7 @@ const likeProject = async (req, res) => {
       actor: req.user,
     });
 
-    res.json({ success: true, liked: true, likeCount: parseInt(countResult.rows[0].count, 10), message: 'Project liked.' });
+    res.json({ success: true, liked: true, likeCount: Number.parseInt(countResult.rows[0].count, 10), message: 'Project liked.' });
   } catch (err) {
     console.error('[likeProject]', err.message);
     res.status(500).json({ success: false, message: 'Server error.' });

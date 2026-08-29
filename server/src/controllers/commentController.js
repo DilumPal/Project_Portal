@@ -28,7 +28,7 @@ const getProjectComments = async (req, res) => {
        JOIN users u ON n.actor_id = u.id
        WHERE n.project_id = $1 AND n.type = 'comment'
        ORDER BY n.created_at ASC`,
-      [parseInt(id, 10)]
+      [Number.parseInt(id, 10)]
     );
 
     let comments = result.rows;

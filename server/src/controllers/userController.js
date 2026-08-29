@@ -23,7 +23,7 @@ const getUserProfile = async (req, res) => {
     }
 
     const userProfile = result.rows[0];
-    const isOwnerOrAdmin = req.user && (req.user.id === parseInt(id, 10) || req.user.role === 'admin');
+    const isOwnerOrAdmin = req.user && (req.user.id === Number.parseInt(id, 10) || req.user.role === 'admin');
     
     if (!isOwnerOrAdmin) {
       delete userProfile.email;
@@ -42,7 +42,7 @@ const getUserProjects = async (req, res) => {
     const { page = 1, limit = 12 } = req.query;
     const offset = (page - 1) * limit;
 
-    const canViewDrafts = req.user && (req.user.id === parseInt(id, 10) || req.user.role === 'admin');
+    const canViewDrafts = req.user && (req.user.id === Number.parseInt(id, 10) || req.user.role === 'admin');
     const statusCondition = canViewDrafts ? "" : " AND p.status = 'published'";
 
     const result = await pool.query(
@@ -56,7 +56,7 @@ const getUserProjects = async (req, res) => {
        GROUP BY p.id, l.like_count
        ORDER BY p.created_at DESC
        LIMIT $2 OFFSET $3`,
-      [id, parseInt(limit, 10), offset]
+      [id, Number.parseInt(limit, 10), offset]
     );
 
     res.json({ success: true, projects: result.rows });
@@ -71,7 +71,7 @@ const followUser = async (req, res) => {
     const { id: followingId } = req.params;
     const followerId = req.user.id;
 
-    if (parseInt(followingId, 10) === followerId) {
+    if (Number.parseInt(followingId, 10) === followerId) {
       return res.status(400).json({ success: false, message: 'Cannot follow yourself.' });
     }
 

@@ -70,18 +70,18 @@ const getStats = async (req, res) => {
     const l = likesRes.rows[0] || {};
 
     const stats = {
-      totalUsers: parseInt(u.total_users || 0, 10),
-      totalStudents: parseInt(u.total_students || 0, 10),
-      totalRecruiters: parseInt(u.total_recruiters || 0, 10),
-      totalAdmins: parseInt(u.total_admins || 0, 10),
-      totalProjects: parseInt(p.total_projects || 0, 10),
-      totalPublishedProjects: parseInt(p.total_published_projects || 0, 10),
-      totalDraftProjects: parseInt(p.total_draft_projects || 0, 10),
-      totalLikes: parseInt(l.total_likes || 0, 10),
-      newUsersToday: parseInt(u.new_users_today || 0, 10),
-      newProjectsToday: parseInt(p.new_projects_today || 0, 10),
-      newUsersThisWeek: parseInt(u.new_users_this_week || 0, 10),
-      newProjectsThisWeek: parseInt(p.new_projects_this_week || 0, 10),
+      totalUsers: Number.parseInt(u.total_users || 0, 10),
+      totalStudents: Number.parseInt(u.total_students || 0, 10),
+      totalRecruiters: Number.parseInt(u.total_recruiters || 0, 10),
+      totalAdmins: Number.parseInt(u.total_admins || 0, 10),
+      totalProjects: Number.parseInt(p.total_projects || 0, 10),
+      totalPublishedProjects: Number.parseInt(p.total_published_projects || 0, 10),
+      totalDraftProjects: Number.parseInt(p.total_draft_projects || 0, 10),
+      totalLikes: Number.parseInt(l.total_likes || 0, 10),
+      newUsersToday: Number.parseInt(u.new_users_today || 0, 10),
+      newProjectsToday: Number.parseInt(p.new_projects_today || 0, 10),
+      newUsersThisWeek: Number.parseInt(u.new_users_this_week || 0, 10),
+      newProjectsThisWeek: Number.parseInt(p.new_projects_this_week || 0, 10),
     };
 
     res.json({
@@ -97,8 +97,8 @@ const getStats = async (req, res) => {
 
 const getUsers = async (req, res) => {
   try {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const limit = Number.parseInt(req.query.limit, 10) || 20;
     const offset = (page - 1) * limit;
     const { search, role, sort = 'newest' } = req.query;
 
@@ -121,7 +121,7 @@ const getUsers = async (req, res) => {
 
     const countQuery = `SELECT COUNT(*) FROM users u ${whereClause}`;
     const countRes = await pool.query(countQuery, params);
-    const total = parseInt(countRes.rows[0].count, 10);
+    const total = Number.parseInt(countRes.rows[0].count, 10);
 
     const queryParams = [...params, limit, offset];
     const dataQuery = `
@@ -257,8 +257,8 @@ const deleteUser = async (req, res) => {
 
 const getProjects = async (req, res) => {
   try {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const limit = Number.parseInt(req.query.limit, 10) || 20;
     const offset = (page - 1) * limit;
     const { search, status = 'all', sort = 'newest', userId } = req.query;
 
@@ -287,7 +287,7 @@ const getProjects = async (req, res) => {
 
     const countQuery = `SELECT COUNT(*) FROM projects p ${whereClause}`;
     const countRes = await pool.query(countQuery, params);
-    const total = parseInt(countRes.rows[0].count, 10);
+    const total = Number.parseInt(countRes.rows[0].count, 10);
 
     const queryParams = [...params, limit, offset];
     const dataQuery = `
