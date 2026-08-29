@@ -69,13 +69,13 @@ const refreshAccessToken = () => {
 const handleUnauthorizedError = async (err, originalRequest) => {
   // Return early if not a 401 error or if already retried
   if (err.response?.status !== 401 || originalRequest?._retry) {
-    return Promise.reject(err);
+    throw err;
   }
 
   // Use null-safe operators to check URL safely, return early if refresh failed
   if (originalRequest?.url?.includes('/auth/refresh')) {
     window.dispatchEvent(new CustomEvent('auth:expired'));
-    return Promise.reject(err);
+    throw err;
   }
 
   originalRequest._retry = true;
@@ -85,7 +85,7 @@ const handleUnauthorizedError = async (err, originalRequest) => {
     return api(originalRequest);
   } catch (refreshError) {
     window.dispatchEvent(new CustomEvent('auth:expired'));
-    return Promise.reject(refreshError);
+    throw refreshError;
   }
 };
 
