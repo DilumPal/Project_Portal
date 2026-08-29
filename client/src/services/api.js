@@ -1,13 +1,12 @@
 import axios from 'axios';
 
-// 1. Define the allowlist of trusted origins
-const ALLOWED_ORIGINS = [
-  window.location.origin, // Allow requests to the same origin
-];
+const ALLOWED_ORIGINS = [window.location.origin];
 
-// If VITE_API_URL is configured as an absolute URL, add its origin to the allowlist
+const isAbsoluteUrl = (url) => typeof url === 'string' && /^https?:\/\//i.test(url);
+
+// Initialize allowlist with VITE_API_URL if applicable
 const apiUrl = import.meta.env.VITE_API_URL;
-if (apiUrl && /^https?:\/\//i.test(apiUrl)) {
+if (isAbsoluteUrl(apiUrl)) {
   try {
     const apiOrigin = new URL(apiUrl).origin;
     if (!ALLOWED_ORIGINS.includes(apiOrigin)) {
@@ -19,81 +18,80 @@ if (apiUrl && /^https?:\/\//i.test(apiUrl)) {
 }
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: import.meta.env.VITE_API_URL ?? '/api',
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// 2. Request Interceptor for URL Allowlisting
-api.interceptors.request.use((config) => {
-  try {
-    let targetUrl;
-    // Determine the full URL of the request safely
-    if (config.url && /^https?:\/\//i.test(config.url)) {
-      targetUrl = new URL(config.url);
-    } else if (config.baseURL && /^https?:\/\//i.test(config.baseURL)) {
-      targetUrl = new URL(config.url || '', config.baseURL);
-    } else {
-      // Safely resolve relative URLs against the true window origin, 
-      // ignoring potential manipulation of the <base> tag in HTML
-      const base = new URL(config.baseURL || '/', window.location.origin);
-      targetUrl = new URL(config.url || '', base);
-    }
+// Helper functions to break down logic
+const getTargetUrl = (config) => {
+  if (isAbsoluteUrl(config.url)) return new URL(config.url);
+  if (isAbsoluteUrl(config.baseURL)) return new URL(config.url ?? '', config.baseURL);
+  
+  const base = new URL(config.baseURL ?? '/', window.location.origin);
+  return new URL(config.url ?? '', base);
+};
 
-    // 3. Validate the full origin (scheme, host, and port) against the allowlist
+const validateRequestOrigin = (config) => {
+  try {
+    const targetUrl = getTargetUrl(config);
     if (!ALLOWED_ORIGINS.includes(targetUrl.origin)) {
       console.error(`Security violation: Blocked request to untrusted origin: ${targetUrl.origin}`);
-      return Promise.reject(new Error(`Blocked request to untrusted origin: ${targetUrl.origin}`));
+      throw new Error(`Blocked request to untrusted origin: ${targetUrl.origin}`);
     }
   } catch (err) {
+    if (err.message.includes('Blocked request')) throw err;
     console.error('Failed to parse request URL for validation:', err);
-    return Promise.reject(new Error('Invalid request URL format.'));
+    throw new Error('Invalid request URL format.');
   }
+};
 
-  return config;
+api.interceptors.request.use((config) => {
+  try {
+    validateRequestOrigin(config);
+    return config;
+  } catch (err) {
+    return Promise.reject(err);
+  }
 });
 
-// Holds the in-flight refresh request (if any) so concurrent 401s share
-// the same refresh call instead of racing each other. Using a shared
-// promise (rather than a boolean flag + queue) avoids the race where two
-// requests both see isRefreshing === false and both trigger a refresh.
 let refreshPromise = null;
 
 const refreshAccessToken = () => {
   if (!refreshPromise) {
-    refreshPromise = api
-      .post('/auth/refresh')
-      .finally(() => {
-        refreshPromise = null;
-      });
+    refreshPromise = api.post('/auth/refresh').finally(() => {
+      refreshPromise = null;
+    });
   }
   return refreshPromise;
 };
 
-api.interceptors.response.use(
-  (res) => res,
-  async (err) => {
-    const originalRequest = err.config;
-
-    if (err.response?.status === 401 && !originalRequest._retry) {
-      if (originalRequest.url.includes('/auth/refresh')) {
-        window.dispatchEvent(new CustomEvent('auth:expired'));
-        return Promise.reject(err);
-      }
-
-      originalRequest._retry = true;
-
-      try {
-        await refreshAccessToken();
-        return api(originalRequest);
-      } catch (refreshError) {
-        window.dispatchEvent(new CustomEvent('auth:expired'));
-        return Promise.reject(refreshError);
-      }
-    }
-
+const handleUnauthorizedError = async (err, originalRequest) => {
+  // Return early if not a 401 error or if already retried
+  if (err.response?.status !== 401 || originalRequest?._retry) {
     return Promise.reject(err);
   }
+
+  // Use null-safe operators to check URL safely, return early if refresh failed
+  if (originalRequest?.url?.includes('/auth/refresh')) {
+    window.dispatchEvent(new CustomEvent('auth:expired'));
+    return Promise.reject(err);
+  }
+
+  originalRequest._retry = true;
+
+  try {
+    await refreshAccessToken();
+    return api(originalRequest);
+  } catch (refreshError) {
+    window.dispatchEvent(new CustomEvent('auth:expired'));
+    return Promise.reject(refreshError);
+  }
+};
+
+api.interceptors.response.use(
+  (res) => res,
+  (err) => handleUnauthorizedError(err, err.config)
 );
 
 export default api;
